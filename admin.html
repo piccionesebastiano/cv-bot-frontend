@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CV Admin</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f0f0f;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 16px;
+    }
+
+    h1 {
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: #888;
+      margin-bottom: 24px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    #auth-section {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      width: 100%;
+      max-width: 800px;
+    }
+
+    input[type="password"] {
+      flex: 1;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 6px;
+      color: #e0e0e0;
+      font-size: 0.9rem;
+      padding: 10px 14px;
+      outline: none;
+    }
+
+    input[type="password"]:focus {
+      border-color: #444;
+    }
+
+    button {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 6px;
+      color: #e0e0e0;
+      cursor: pointer;
+      font-size: 0.9rem;
+      padding: 10px 18px;
+      transition: background 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+
+    button:hover { background: #222; border-color: #444; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    button.primary {
+      background: #1d3a2a;
+      border-color: #2a5c3f;
+      color: #5ddb8e;
+    }
+
+    button.primary:hover { background: #223f2f; border-color: #3a7a55; }
+
+    #editor-section {
+      width: 100%;
+      max-width: 800px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    textarea {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 6px;
+      color: #e0e0e0;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.82rem;
+      line-height: 1.6;
+      outline: none;
+      padding: 16px;
+      resize: vertical;
+      width: 100%;
+      min-height: 60vh;
+    }
+
+    textarea:focus { border-color: #444; }
+
+    #actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    #status {
+      font-size: 0.82rem;
+      padding: 10px 14px;
+      border-radius: 6px;
+      display: none;
+    }
+
+    #status.success { background: #1d3a2a; color: #5ddb8e; display: block; }
+    #status.error   { background: #3a1a1a; color: #e05d5d; display: block; }
+  </style>
+</head>
+<body>
+  <h1>CV Editor</h1>
+
+  <div id="auth-section">
+    <input type="password" id="secret" placeholder="Admin secret" autocomplete="current-password" />
+    <button id="load-btn" onclick="loadCv()">Carica</button>
+  </div>
+
+  <div id="editor-section">
+    <textarea id="cv-content" placeholder="Premi Carica per caricare il CV..." spellcheck="false"></textarea>
+    <div id="status"></div>
+    <div id="actions">
+      <button onclick="loadCv()">Ricarica</button>
+      <button class="primary" id="save-btn" onclick="saveCv()">Salva</button>
+    </div>
+  </div>
+
+  <script>
+    const API = 'https://cv-bot-backend-production.up.railway.app';
+
+    function secret() {
+      return document.getElementById('secret').value.trim();
+    }
+
+    function setStatus(msg, type) {
+      const el = document.getElementById('status');
+      el.textContent = msg;
+      el.className = type;
+    }
+
+    async function loadCv() {
+      if (!secret()) { setStatus('Inserisci il secret prima.', 'error'); return; }
+      document.getElementById('load-btn').disabled = true;
+      setStatus('', '');
+      try {
+        const res = await fetch(`${API}/admin/cv/content`, {
+          headers: { 'x-admin-secret': secret() },
+        });
+        if (!res.ok) throw new Error(res.status === 401 ? 'Secret non valido.' : `Errore ${res.status}`);
+        const { content } = await res.json();
+        document.getElementById('cv-content').value = content;
+        setStatus('CV caricato.', 'success');
+      } catch (e) {
+        setStatus(e.message, 'error');
+      } finally {
+        document.getElementById('load-btn').disabled = false;
+      }
+    }
+
+    async function saveCv() {
+      if (!secret()) { setStatus('Inserisci il secret prima.', 'error'); return; }
+      const content = document.getElementById('cv-content').value;
+      if (!content.trim()) { setStatus('Il contenuto è vuoto.', 'error'); return; }
+      document.getElementById('save-btn').disabled = true;
+      setStatus('', '');
+      try {
+        const res = await fetch(`${API}/admin/cv`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-secret': secret(),
+          },
+          body: JSON.stringify({ content }),
+        });
+        if (!res.ok) throw new Error(res.status === 401 ? 'Secret non valido.' : `Errore ${res.status}`);
+        const { newHash } = await res.json();
+        setStatus(`Salvato. Hash: ${newHash}`, 'success');
+      } catch (e) {
+        setStatus(e.message, 'error');
+      } finally {
+        document.getElementById('save-btn').disabled = false;
+      }
+    }
+
+    document.getElementById('secret').addEventListener('keydown', e => {
+      if (e.key === 'Enter') loadCv();
+    });
+  </script>
+</body>
+</html>
