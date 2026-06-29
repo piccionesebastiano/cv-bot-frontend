@@ -137,6 +137,56 @@
 
   const isMobile = () => window.matchMedia('(max-width: 520px)').matches;
 
+  // ─── Site theme sync ──────────────────────────────────────────────────────
+
+  function hexToRgb(hex) {
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex.trim());
+    return m ? `${parseInt(m[1], 16)}, ${parseInt(m[2], 16)}, ${parseInt(m[3], 16)}` : null;
+  }
+
+  function darkenHex(hex, amount) {
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex.trim());
+    if (!m) return hex;
+    const clamp = (v) => Math.max(0, Math.min(255, v));
+    return '#' + [
+      clamp(parseInt(m[1], 16) - amount),
+      clamp(parseInt(m[2], 16) - amount),
+      clamp(parseInt(m[3], 16) - amount),
+    ].map((n) => n.toString(16).padStart(2, '0')).join('');
+  }
+
+  function applySiteTheme() {
+    const root = getComputedStyle(document.documentElement);
+    const get = (v) => root.getPropertyValue(v).trim();
+
+    const accent = get('--accent');
+    if (!accent) return;
+
+    const accentRgb = hexToRgb(accent);
+    const vars = {
+      '--bg':           get('--bg'),
+      '--surface':      get('--bg-soft') || get('--surface'),
+      '--surface-2':    get('--border'),
+      '--border':       get('--border'),
+      '--text':         get('--text'),
+      '--text-muted':   get('--text-dim'),
+      '--accent':       accent,
+      '--accent-dim':   get('--accent-soft') || (accentRgb ? `rgba(${accentRgb}, 0.12)` : ''),
+      '--accent-glow':  accentRgb ? `rgba(${accentRgb}, 0.28)` : '',
+      '--accent-hover': darkenHex(accent, 20),
+      '--online':       get('--signal'),
+      '--radius':       get('--radius-sm') || get('--radius'),
+      '--shadow':       get('--shadow-md'),
+    };
+
+    Object.entries(vars).forEach(([prop, val]) => {
+      if (val) widget.style.setProperty(prop, val);
+    });
+  }
+
+  applySiteTheme();
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applySiteTheme);
+
   // ─── Open / Close ─────────────────────────────────────────────────────────
 
   function openPanel() {
@@ -282,7 +332,7 @@
     el.className = 'cv-typing';
     el.id = 'cv-typing';
     el.innerHTML = `
-      <div class="cv-msg-bot-avatar" style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#7C3AED,#a855f7);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0;margin-top:2px;">SP</div>
+      <div class="cv-msg-bot-avatar">SP</div>
       <div class="cv-typing-dots"><span></span><span></span><span></span></div>
     `;
     messagesEl.appendChild(el);

@@ -123,6 +123,7 @@
   --accent:       #7C3AED;
   --accent-dim:   rgba(124, 58, 237, 0.14);
   --accent-glow:  rgba(124, 58, 237, 0.30);
+  --accent-hover: #6D28D9;
   --text:         #E6EDF3;
   --text-muted:   #8B949E;
   --online:       #3FB950;
@@ -229,7 +230,7 @@
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #7C3AED, #a855f7);
+  background: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -327,7 +328,7 @@
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #7C3AED, #a855f7);
+  background: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -376,7 +377,7 @@
 
 .cv-msg-user-text {
   background: var(--accent-dim);
-  border: 1px solid rgba(124, 58, 237, 0.25);
+  border: 1px solid var(--accent-dim);
   border-radius: var(--radius) var(--radius) 4px var(--radius);
   padding: 10px 13px;
   color: var(--text);
@@ -491,7 +492,7 @@
   white-space: nowrap;
   padding: 6px 13px;
   border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border);
   background: var(--surface-2);
   color: var(--text-muted);
   font-size: 12.5px;
@@ -558,7 +559,7 @@
 }
 
 .cv-send:hover:not(:disabled) {
-  background: #6D28D9;
+  background: var(--accent-hover);
   transform: translateY(-1px);
 }
 
@@ -589,7 +590,7 @@
   opacity: 0.55;
   line-height: 1.5;
   flex-shrink: 0;
-  border-top: 1px solid rgba(255,255,255,0.04);
+  border-top: 1px solid var(--border);
 }
 
 /* ─── Backdrop ─── */
@@ -681,7 +682,7 @@
     width: 40px;
     height: 4px;
     border-radius: 2px;
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--border);
     margin: 12px auto 0;
     flex-shrink: 0;
   }
@@ -761,7 +762,7 @@
 .cv-new-chat:hover {
   background: var(--surface-2);
   color: var(--text);
-  border-color: rgba(124, 58, 237, 0.4);
+  border-color: var(--accent-dim);
 }
 
 @media (max-width: 520px) {
@@ -814,18 +815,19 @@
 
 @media (prefers-color-scheme: light) {
   #cv-chat-widget {
-    --bg:          #FFFFFF;
-    --surface:     #F6F8FA;
-    --surface-2:   #EAEEF2;
-    --border:      #D0D7DE;
-    --accent:      #7C3AED;
-    --accent-dim:  rgba(124, 58, 237, 0.08);
-    --accent-glow: rgba(124, 58, 237, 0.20);
-    --text:        #1F2328;
-    --text-muted:  #656D76;
-    --online:      #1A7F37;
-    --user-bubble: #EAEEF2;
-    --error:       #CF222E;
-    --shadow:      0 16px 48px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.06);
+    --bg:           #FFFFFF;
+    --surface:      #F6F8FA;
+    --surface-2:    #EAEEF2;
+    --border:       #D0D7DE;
+    --accent:       #7C3AED;
+    --accent-dim:   rgba(124, 58, 237, 0.08);
+    --accent-glow:  rgba(124, 58, 237, 0.20);
+    --accent-hover: #5B21B6;
+    --text:         #1F2328;
+    --text-muted:   #656D76;
+    --online:       #1A7F37;
+    --user-bubble:  #EAEEF2;
+    --error:        #CF222E;
+    --shadow:       0 16px 48px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.06);
   }
 }
