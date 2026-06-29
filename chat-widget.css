@@ -1,0 +1,831 @@
+/* ─── Self-hosted fonts — no external requests ─── */
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url(fonts/inter-cyrillic-ext.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url(fonts/inter-cyrillic.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url(fonts/inter-greek-ext.woff2) format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url(fonts/inter-greek.woff2) format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url(fonts/inter-vietnamese.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url(fonts/inter-latin-ext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url(fonts/inter-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url(fonts/jbmono-cyrillic-ext.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url(fonts/jbmono-cyrillic.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url(fonts/jbmono-greek.woff2) format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url(fonts/jbmono-vietnamese.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url(fonts/jbmono-latin-ext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url(fonts/jbmono-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ─── CV Chat Widget — scoped to #cv-chat-widget ─── */
+
+:where(#cv-chat-widget) * {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: inherit;
+}
+
+#cv-chat-widget {
+  --bg:           #0D1117;
+  --surface:      #161B22;
+  --surface-2:    #1C2128;
+  --border:       #21262D;
+  --accent:       #7C3AED;
+  --accent-dim:   rgba(124, 58, 237, 0.14);
+  --accent-glow:  rgba(124, 58, 237, 0.30);
+  --text:         #E6EDF3;
+  --text-muted:   #8B949E;
+  --online:       #3FB950;
+  --user-bubble:  #21262D;
+  --error:        #F85149;
+  --radius:       14px;
+  --shadow:       0 16px 48px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.05);
+
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* ─── Toggle button ─── */
+
+.cv-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 40px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  box-shadow: 0 4px 20px var(--accent-glow);
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+}
+
+.cv-toggle:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 28px var(--accent-glow);
+}
+
+.cv-toggle svg {
+  flex-shrink: 0;
+}
+
+.cv-toggle-pulse {
+  position: absolute;
+  inset: -3px;
+  border-radius: 40px;
+  border: 2px solid var(--accent);
+  opacity: 0;
+  animation: pulse 2.4s ease-out infinite;
+}
+
+@keyframes pulse {
+  0%   { opacity: 0.7; transform: scale(1); }
+  100% { opacity: 0;   transform: scale(1.18); }
+}
+
+/* ─── Panel ─── */
+
+.cv-panel {
+  position: absolute;
+  bottom: calc(100% + 14px);
+  right: 0;
+  width: 400px;
+  height: 560px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform-origin: bottom right;
+  transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.34, 1.4, 0.64, 1);
+  z-index: 9999;
+}
+
+.cv-panel[aria-hidden="true"] {
+  opacity: 0;
+  transform: scale(0.92) translateY(8px);
+  pointer-events: none;
+}
+
+.cv-panel[aria-hidden="false"] {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+/* ─── Header ─── */
+
+.cv-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+
+.cv-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7C3AED, #a855f7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.cv-header-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cv-header-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cv-header-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+.cv-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--online);
+  box-shadow: 0 0 6px var(--online);
+}
+
+.cv-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  line-height: 1;
+  transition: background 0.15s, color 0.15s;
+}
+
+.cv-close:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+/* ─── Messages ─── */
+
+.cv-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  scroll-behavior: smooth;
+}
+
+.cv-messages::-webkit-scrollbar {
+  width: 4px;
+}
+.cv-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+.cv-messages::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+/* Bot message */
+.cv-msg-bot {
+  display: flex;
+  gap: 10px;
+  animation: msgIn 0.22s ease;
+}
+
+.cv-msg-bot-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7C3AED, #a855f7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.cv-msg-bot-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.cv-msg-bot-text ul {
+  margin: 6px 0 4px 16px;
+  padding: 0;
+}
+
+.cv-msg-bot-text li {
+  margin-bottom: 2px;
+}
+
+.cv-msg-bot-text {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) var(--radius);
+  padding: 10px 13px;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* User message */
+.cv-msg-user {
+  display: flex;
+  justify-content: flex-end;
+  animation: msgIn 0.22s ease;
+}
+
+.cv-msg-user-text {
+  background: var(--accent-dim);
+  border: 1px solid rgba(124, 58, 237, 0.25);
+  border-radius: var(--radius) var(--radius) 4px var(--radius);
+  padding: 10px 13px;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 80%;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Timestamp */
+.cv-msg-time {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* Meta row below bot message: timestamp + copy button */
+.cv-msg-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+  padding-left: 2px;
+}
+
+.cv-msg-user .cv-msg-time {
+  text-align: right;
+  margin-top: 4px;
+  padding-left: 2px;
+}
+
+/* Typing indicator */
+.cv-typing {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.cv-typing-dots {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) var(--radius);
+  padding: 12px 16px;
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.cv-typing-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  animation: dot 1.2s ease-in-out infinite;
+}
+.cv-typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.cv-typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dot {
+  0%, 80%, 100% { opacity: 0.25; transform: scale(0.8); }
+  40%            { opacity: 1;    transform: scale(1); }
+}
+
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.cv-msg-bot-text--streaming::after {
+  content: '▋';
+  display: inline-block;
+  color: var(--accent);
+  font-size: 0.85em;
+  vertical-align: baseline;
+  animation: cv-cursor-blink 0.8s step-end infinite;
+  margin-left: 1px;
+}
+
+@keyframes cv-cursor-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* ─── Suggestions ─── */
+
+.cv-suggestions {
+  padding: 10px 16px 14px;
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  gap: 7px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.cv-suggestions::-webkit-scrollbar {
+  display: none;
+}
+
+.cv-suggestions[hidden] {
+  display: none;
+}
+
+.cv-chip {
+  flex-shrink: 0;
+  white-space: nowrap;
+  padding: 6px 13px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  line-height: 1.4;
+  touch-action: manipulation;
+}
+
+.cv-chip:hover {
+  border-color: var(--accent);
+  color: var(--text);
+  background: var(--accent-dim);
+}
+
+/* ─── Input area ─── */
+
+.cv-input-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+
+.cv-input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 13px;
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s;
+  resize: none;
+  min-height: 38px;
+  max-height: 100px;
+}
+
+.cv-input::placeholder {
+  color: var(--text-muted);
+}
+
+.cv-input:focus {
+  border-color: var(--accent);
+}
+
+.cv-send {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.cv-send:hover:not(:disabled) {
+  background: #6D28D9;
+  transform: translateY(-1px);
+}
+
+.cv-send:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ─── Error state ─── */
+
+.cv-msg-error {
+  color: var(--error);
+  font-size: 13px;
+  text-align: center;
+  padding: 8px 12px;
+  background: rgba(248, 81, 73, 0.08);
+  border: 1px solid rgba(248, 81, 73, 0.2);
+  border-radius: 8px;
+}
+
+/* ─── Privacy notice ─── */
+
+.cv-privacy {
+  padding: 6px 16px 8px;
+  text-align: center;
+  font-size: 10px;
+  color: var(--text-muted);
+  opacity: 0.55;
+  line-height: 1.5;
+  flex-shrink: 0;
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+
+/* ─── Backdrop ─── */
+
+.cv-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 9998;
+  opacity: 0;
+  transition: opacity 0.26s ease;
+}
+
+.cv-backdrop.visible {
+  display: block;
+}
+
+.cv-backdrop.active {
+  opacity: 1;
+}
+
+@media (max-width: 520px) {
+  .cv-backdrop.active {
+    background: rgba(0, 0, 0, 0.6);
+  }
+}
+
+/* ─── Mobile: bottom sheet ─── */
+
+@media (max-width: 520px) {
+
+  /* Widget container — solo ancora per il FAB */
+  #cv-chat-widget {
+    bottom: 0;
+    right: 0;
+    left: 0;
+  }
+
+  /* FAB circolare — solo icona */
+  .cv-toggle {
+    position: fixed;
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .cv-toggle > span:not(.cv-toggle-pulse) {
+    display: none;
+  }
+
+  .cv-toggle-pulse {
+    border-radius: 50%;
+  }
+
+  /* Bottom sheet — position fixed indipendente dal container */
+  .cv-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 90dvh;
+    max-height: 90dvh;
+    border-radius: 20px 20px 0 0;
+    transform-origin: bottom center;
+    z-index: 9999;
+  }
+
+  /* Animazione: slide-up invece di scale */
+  .cv-panel[aria-hidden="true"] {
+    opacity: 1;
+    transform: translateY(100%);
+  }
+
+  .cv-panel[aria-hidden="false"] {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Drag handle visivo */
+  .cv-panel::before {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.15);
+    margin: 12px auto 0;
+    flex-shrink: 0;
+  }
+
+  /* Header */
+  .cv-header {
+    padding: 8px 16px 14px;
+  }
+
+  .cv-close {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+  }
+
+  /* Messages */
+  .cv-messages {
+    padding: 12px 16px;
+  }
+
+  /* Chips — override padding e font per mobile */
+  .cv-suggestions {
+    padding: 8px 16px 10px;
+    gap: 8px;
+  }
+
+  .cv-chip {
+    padding: 9px 16px;
+    font-size: 13px;
+  }
+
+  /* Input area — rispetta safe area iOS */
+  .cv-input-area {
+    padding: 10px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+    gap: 10px;
+  }
+
+  /* 16px previene lo zoom automatico di iOS sul focus */
+  .cv-input {
+    font-size: 16px;
+    padding: 12px 14px;
+  }
+
+  /* Send — touch target 44px */
+  .cv-send {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    flex-shrink: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cv-toggle-pulse { animation: none; }
+  .cv-panel { transition: none; }
+  .cv-backdrop { transition: none; }
+  .cv-msg-bot, .cv-msg-user { animation: none; }
+}
+
+/* ─── New chat button (U1) ─── */
+
+.cv-new-chat {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.cv-new-chat:hover {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: rgba(124, 58, 237, 0.4);
+}
+
+@media (max-width: 520px) {
+  .cv-new-chat {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+/* ─── Copy button (U7) ─── */
+
+.cv-copy-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+}
+
+.cv-msg-bot:hover .cv-copy-btn,
+.cv-copy-btn:focus-visible {
+  opacity: 1;
+}
+
+.cv-copy-btn:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.cv-copy-btn--done {
+  color: var(--online);
+  opacity: 1;
+}
+
+/* ─── Loading chips state (U3) ─── */
+
+.cv-suggestions--loading .cv-chip {
+  pointer-events: none;
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ─── Light mode (U8) ─── */
+
+@media (prefers-color-scheme: light) {
+  #cv-chat-widget {
+    --bg:          #FFFFFF;
+    --surface:     #F6F8FA;
+    --surface-2:   #EAEEF2;
+    --border:      #D0D7DE;
+    --accent:      #7C3AED;
+    --accent-dim:  rgba(124, 58, 237, 0.08);
+    --accent-glow: rgba(124, 58, 237, 0.20);
+    --text:        #1F2328;
+    --text-muted:  #656D76;
+    --online:      #1A7F37;
+    --user-bubble: #EAEEF2;
+    --error:       #CF222E;
+    --shadow:      0 16px 48px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.06);
+  }
+}
