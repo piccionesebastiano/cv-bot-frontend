@@ -575,7 +575,15 @@
   function renderMarkdown(raw) {
     // Normalize both actual newlines and the two-char sequence \n (from JSON/HTML configs)
     const normalized = raw.replace(/\\n/g, '\n');
-    const escaped = escapeHtml(normalized);
+
+    // Extract inline code spans before escaping so backtick content is preserved verbatim
+    const codeSpans = [];
+    const withCodePlaceholders = normalized.replace(/`([^`]+)`/g, (_, code) => {
+      const idx = codeSpans.push(code) - 1;
+      return `\x00CODE${idx}\x00`;
+    });
+
+    const escaped = escapeHtml(withCodePlaceholders);
 
     const withLists = escaped.replace(
       /((?:^|\n)- .+)+/g,
@@ -593,6 +601,7 @@
     return withLists
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
-      .replace(/\n/g, '<br>');
+      .replace(/\n/g, '<br>')
+      .replace(/\x00CODE(\d+)\x00/g, (_, i) => `<code>${escapeHtml(codeSpans[+i])}</code>`);
   }
 })();
