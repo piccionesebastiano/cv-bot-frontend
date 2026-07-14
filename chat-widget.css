@@ -375,6 +375,14 @@
   animation: msgIn 0.22s ease;
 }
 
+/* max-width lives here (on the flex item) rather than on .cv-msg-user-text below it —
+   a percentage max-width on a nested block would resolve against this wrapper's own
+   (content-driven, indefinite) width, a circular calc that made short words wrap oddly. */
+.cv-msg-user-wrap {
+  max-width: 80%;
+  min-width: 0;
+}
+
 .cv-msg-user-text {
   background: var(--accent-dim);
   border: 1px solid var(--accent-dim);
@@ -383,7 +391,7 @@
   color: var(--text);
   font-size: 14px;
   line-height: 1.6;
-  max-width: 80%;
+  max-width: 100%;
   word-break: break-word;
   overflow-wrap: break-word;
 }

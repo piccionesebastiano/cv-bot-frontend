@@ -14,7 +14,7 @@
       botRole: 'Backend Engineer',
       toggleLabel: 'Chiedimi del CV',
       welcomeMessage:
-        'Ciao! Sono Sebastiano — o almeno una versione digitale abbastanza fedele 😄\nChiedimi quello che vuoi sul mio CV, esperienza o progetti.',
+        'Ciao! Sono Sebastiano, o almeno una versione digitale abbastanza fedele 😄\nChiedimi quello che vuoi sul mio CV, esperienza o progetti.',
       initialSuggestions: [
         'Che stack tecnologico usi?',
         'Hai esperienza con sistemi ad alto traffico?',
@@ -189,6 +189,31 @@
 
   // ─── Open / Close ─────────────────────────────────────────────────────────
 
+  // Populates the conversation on first display, restoring from sessionStorage (U6)
+  // or falling back to the welcome message. Shared by openPanel() and the embedded-mode
+  // auto-init below, since in embedded mode there's no toggle click to trigger openPanel().
+  function initMessagesIfEmpty() {
+    if (messagesEl.children.length > 0) {
+      scrollToBottom();
+      return;
+    }
+    const session = loadSession();
+    if (session && session.messages && session.messages.length > 0) {
+      conversationHistory = session.history || [];
+      messageLog = session.messages;
+      lastSuggestions = session.suggestions || CONFIG.initialSuggestions;
+      session.messages.forEach((msg) => {
+        if (msg.role === 'bot') addBotMessage(msg.text, msg.time);
+        else if (msg.role === 'user') addUserMessage(msg.text, msg.time);
+      });
+      renderSuggestions(lastSuggestions);
+    } else {
+      addBotMessage(CONFIG.welcomeMessage);
+      renderSuggestions(CONFIG.initialSuggestions);
+      saveSession();
+    }
+  }
+
   function openPanel() {
     isOpen = true;
     panel.setAttribute('aria-hidden', 'false');
@@ -202,26 +227,7 @@
       inputEl.focus();
     }
 
-    if (messagesEl.children.length === 0) {
-      const session = loadSession();
-      if (session && session.messages && session.messages.length > 0) {
-        // U6: restore conversation from sessionStorage
-        conversationHistory = session.history || [];
-        messageLog = session.messages;
-        lastSuggestions = session.suggestions || CONFIG.initialSuggestions;
-        session.messages.forEach((msg) => {
-          if (msg.role === 'bot') addBotMessage(msg.text, msg.time);
-          else if (msg.role === 'user') addUserMessage(msg.text, msg.time);
-        });
-        renderSuggestions(lastSuggestions);
-      } else {
-        addBotMessage(CONFIG.welcomeMessage);
-        renderSuggestions(CONFIG.initialSuggestions);
-        saveSession();
-      }
-    } else {
-      scrollToBottom();
-    }
+    initMessagesIfEmpty();
   }
 
   function closePanel() {
@@ -259,6 +265,16 @@
   newChatBtn.addEventListener('click', resetConversation);
   backdrop.addEventListener('click', closePanel);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen) closePanel(); });
+
+  // Embedded mode: some host pages hide .cv-toggle and force .cv-panel open via CSS to mount
+  // the widget inline in a page section instead of as a floating bubble. There's then no click
+  // to trigger openPanel(), so the welcome message/suggestions would otherwise never appear.
+  if (getComputedStyle(toggleBtn).display === 'none') {
+    isOpen = true;
+    panel.setAttribute('aria-hidden', 'false');
+    toggleBtn.setAttribute('aria-expanded', 'true');
+    initMessagesIfEmpty();
+  }
 
   // ─── Messages ─────────────────────────────────────────────────────────────
 
@@ -309,7 +325,7 @@
     const wrap = document.createElement('div');
     wrap.className = 'cv-msg-user';
     wrap.innerHTML = `
-      <div>
+      <div class="cv-msg-user-wrap">
         <div class="cv-msg-user-text">${escapeHtml(text)}</div>
         <div class="cv-msg-time">${time}</div>
       </div>
