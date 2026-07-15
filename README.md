@@ -27,9 +27,10 @@ Talks to **[cv-bot-backend](https://github.com/piccionesebastiano/cv-bot-backend
 | `widgetToken`          | `''`                               | Must match the backend's `WIDGET_SECRET`, if set.               |
 | `botName`             | `'Sebastiano Piccione'`            | Shown in the widget header.                                     |
 | `botRole`             | `'Backend Engineer'`               | Subtitle under the bot name.                                    |
-| `toggleLabel`         | `'Chiedimi del CV'`                | Text on the launcher button.                                    |
 | `welcomeMessage`      | (IT greeting)                      | First message shown when the widget opens.                      |
 | `initialSuggestions`  | 4 example questions                | Quick-reply chips shown before the first user message.          |
+
+The widget has no toggle bubble or close button — it always mounts open, in normal document flow. Size and position it like any other block element via `#cv-chat-widget` (see `mysite`'s override CSS for an example of theming it to match a host page).
 
 Conversation history and message log persist in `sessionStorage` (`chat-widget.js`), so a page refresh doesn't lose an in-progress conversation.
 

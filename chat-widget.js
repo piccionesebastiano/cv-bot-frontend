@@ -12,7 +12,6 @@
       widgetToken: '',   // Imposta con WIDGET_SECRET del backend
       botName: 'Sebastiano Piccione',
       botRole: 'Backend Engineer',
-      toggleLabel: 'Chiedimi del CV',
       welcomeMessage:
         'Ciao! Sono Sebastiano, o almeno una versione digitale abbastanza fedele 😄\nChiedimi quello che vuoi sul mio CV, esperienza o progetti.',
       initialSuggestions: [
@@ -32,7 +31,6 @@
 
   // ─── State ───────────────────────────────────────────────────────────────────
 
-  let isOpen = false;
   let isLoading = false;
   let conversationHistory = []; // { role: 'user'|'assistant', content: string }[]
   let messageLog = [];          // { role: 'bot'|'user', text: string, time: string }[]
@@ -74,17 +72,7 @@
   }
 
   widget.innerHTML = `
-    <div class="cv-backdrop" id="cv-backdrop" aria-hidden="true"></div>
-
-    <button class="cv-toggle" aria-label="Apri chat CV" aria-expanded="false">
-      <span class="cv-toggle-pulse"></span>
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-      </svg>
-      <span>${CONFIG.toggleLabel}</span>
-    </button>
-
-    <div class="cv-panel" aria-hidden="true" role="dialog" aria-label="Chat CV">
+    <div class="cv-panel" role="dialog" aria-label="Chat CV">
       <div class="cv-header">
         <div class="cv-avatar">SP</div>
         <div class="cv-header-info">
@@ -99,7 +87,6 @@
             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
           </svg>
         </button>
-        <button class="cv-close" aria-label="Chiudi chat">✕</button>
       </div>
 
       <div class="cv-messages" id="cv-messages" role="log" aria-live="polite"></div>
@@ -125,17 +112,11 @@
     </div>
   `;
 
-  const backdrop      = widget.querySelector('#cv-backdrop');
-  const toggleBtn     = widget.querySelector('.cv-toggle');
-  const panel         = widget.querySelector('.cv-panel');
-  const closeBtn      = widget.querySelector('.cv-close');
   const newChatBtn    = widget.querySelector('#cv-new-chat');
   const messagesEl    = widget.querySelector('#cv-messages');
   const suggestionsEl = widget.querySelector('#cv-suggestions');
   const inputEl       = widget.querySelector('#cv-input');
   const sendBtn       = widget.querySelector('#cv-send');
-
-  const isMobile = () => window.matchMedia('(max-width: 520px)').matches;
 
   // ─── Site theme sync ──────────────────────────────────────────────────────
 
@@ -172,7 +153,6 @@
       '--text-muted':   get('--text-dim'),
       '--accent':       accent,
       '--accent-dim':   get('--accent-soft') || (accentRgb ? `rgba(${accentRgb}, 0.12)` : ''),
-      '--accent-glow':  accentRgb ? `rgba(${accentRgb}, 0.28)` : '',
       '--accent-hover': darkenHex(accent, 20),
       '--online':       get('--signal'),
       '--radius':       get('--radius-sm') || get('--radius'),
@@ -187,11 +167,11 @@
   applySiteTheme();
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applySiteTheme);
 
-  // ─── Open / Close ─────────────────────────────────────────────────────────
+  // ─── Init ─────────────────────────────────────────────────────────────────
 
-  // Populates the conversation on first display, restoring from sessionStorage (U6)
-  // or falling back to the welcome message. Shared by openPanel() and the embedded-mode
-  // auto-init below, since in embedded mode there's no toggle click to trigger openPanel().
+  // The widget has no toggle/close button — it's always mounted open. Populates the
+  // conversation on load, restoring from sessionStorage (U6) or falling back to the
+  // welcome message.
   function initMessagesIfEmpty() {
     if (messagesEl.children.length > 0) {
       scrollToBottom();
@@ -214,35 +194,6 @@
     }
   }
 
-  function openPanel() {
-    isOpen = true;
-    panel.setAttribute('aria-hidden', 'false');
-    toggleBtn.setAttribute('aria-expanded', 'true');
-
-    backdrop.classList.add('visible');
-    requestAnimationFrame(() => backdrop.classList.add('active'));
-    if (isMobile()) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      inputEl.focus();
-    }
-
-    initMessagesIfEmpty();
-  }
-
-  function closePanel() {
-    isOpen = false;
-    panel.setAttribute('aria-hidden', 'true');
-    toggleBtn.setAttribute('aria-expanded', 'false');
-
-    backdrop.classList.remove('active');
-    setTimeout(() => backdrop.classList.remove('visible'), 260);
-    if (isMobile()) {
-      document.body.style.overflow = '';
-    }
-    inputEl.style.height = 'auto';
-  }
-
   // U1: reset conversation to welcome state
   function resetConversation() {
     if (isLoading) return;
@@ -260,30 +211,18 @@
     inputEl.focus();
   }
 
-  toggleBtn.addEventListener('click', () => (isOpen ? closePanel() : openPanel()));
-  closeBtn.addEventListener('click', closePanel);
   newChatBtn.addEventListener('click', resetConversation);
-  backdrop.addEventListener('click', closePanel);
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen) closePanel(); });
 
-  // Embedded mode: some host pages hide .cv-toggle and force .cv-panel open via CSS to mount
-  // the widget inline in a page section instead of as a floating bubble. There's then no click
-  // to trigger openPanel(), so the welcome message/suggestions would otherwise never appear.
-  if (getComputedStyle(toggleBtn).display === 'none') {
-    isOpen = true;
-    panel.setAttribute('aria-hidden', 'false');
-    toggleBtn.setAttribute('aria-expanded', 'true');
-    initMessagesIfEmpty();
-  }
+  const COPY_ICON = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+  const CHECK_ICON = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+
+  initMessagesIfEmpty();
 
   // ─── Messages ─────────────────────────────────────────────────────────────
 
   function timestamp() {
     return new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
   }
-
-  const COPY_ICON = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
-  const CHECK_ICON = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
 
   // savedTime is passed when restoring from sessionStorage — skips pushing to messageLog
   function addBotMessage(text, savedTime) {
