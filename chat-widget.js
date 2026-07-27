@@ -36,6 +36,15 @@
   let messageLog = [];          // { role: 'bot'|'user', text: string, time: string }[]
   let lastSuggestions = CONFIG.initialSuggestions;
 
+  // Unique id per conversation — lets the backend group logged Q&A turns.
+  function newSessionId() {
+    try {
+      if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    } catch (_) {}
+    return 'c-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+  }
+  let sessionId = newSessionId();
+
   // ─── Session storage (U6) ────────────────────────────────────────────────────
 
   const SESSION_KEY = 'cv-chat-session';
@@ -43,6 +52,7 @@
   function saveSession() {
     try {
       sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+        sessionId: sessionId,
         history: conversationHistory,
         messages: messageLog,
         suggestions: lastSuggestions,
@@ -108,7 +118,7 @@
           </svg>
         </button>
       </div>
-      <p class="cv-privacy">I messaggi sono elaborati da AI di terze parti (OpenRouter/DeepSeek). Nessun dato personale viene salvato sul tuo dispositivo.</p>
+      <p class="cv-privacy">I messaggi sono elaborati da AI di terze parti (OpenRouter/DeepSeek) e conservati a fini di analisi del titolare. Evita di inserire dati personali o sensibili. <a href="privacy.html" target="_blank" rel="noopener">Privacy</a></p>
     </div>
   `;
 
@@ -179,6 +189,7 @@
     }
     const session = loadSession();
     if (session && session.messages && session.messages.length > 0) {
+      if (session.sessionId) sessionId = session.sessionId;
       conversationHistory = session.history || [];
       messageLog = session.messages;
       lastSuggestions = session.suggestions || CONFIG.initialSuggestions;
@@ -197,6 +208,7 @@
   // U1: reset conversation to welcome state
   function resetConversation() {
     if (isLoading) return;
+    sessionId = newSessionId();
     conversationHistory = [];
     messageLog = [];
     lastSuggestions = CONFIG.initialSuggestions;
@@ -420,7 +432,7 @@
           'ngrok-skip-browser-warning': 'true',
           ...(CONFIG.widgetToken ? { 'X-Widget-Token': CONFIG.widgetToken } : {}),
         },
-        body: JSON.stringify({ message, history: conversationHistory.slice(-20) }),
+        body: JSON.stringify({ message, sessionId, history: conversationHistory.slice(-20) }),
       });
 
       clearTimeout(fetchTimeout);

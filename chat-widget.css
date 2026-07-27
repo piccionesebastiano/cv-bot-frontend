@@ -518,6 +518,12 @@
   border-top: 1px solid var(--border);
 }
 
+.cv-privacy a {
+  color: inherit;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
 /* ─── Mobile ─── */
 
 @media (max-width: 520px) {
