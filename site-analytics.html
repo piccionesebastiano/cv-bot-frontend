@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Site Analytics — Heatmap</title>
+  <style>
+    :root {
+      color-scheme: dark;
+
+      --surface-0: #0f0f0f;
+      --surface-1: #161616;
+      --surface-2: #1a1a1a;
+      --border:    #262626;
+      --border-2:  #2a2a2a;
+
+      --text-primary:   #e8e8e8;
+      --text-secondary: #999;
+      --text-muted:     #666;
+
+      /* Sequential ramp — blue, one hue. Ordered so the step nearest the
+         (dark) surface means "near zero" and the palest step means "hottest". */
+      --seq-700: #0d366b;
+      --seq-600: #184f95;
+      --seq-500: #256abf;
+      --seq-400: #3987e5;
+      --seq-300: #6da7ec;
+      --seq-100: #cde2fb;
+
+      --critical: #e05d5d;
+      --good:     #5ddb8e;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--surface-0);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 24px 14px 60px;
+    }
+
+    .wrap { width: 100%; max-width: 1100px; margin: 0 auto; }
+
+    h1 {
+      font-size: 1.05rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    #auth-section { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+
+    input, select {
+      background: var(--surface-2);
+      border: 1px solid var(--border-2);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 1rem; /* >=16px keeps iOS from zooming on focus */
+      padding: 10px 12px;
+      outline: none;
+    }
+    input:focus, select:focus { border-color: #444; }
+    #secret { flex: 1 1 180px; }
+
+    button {
+      background: var(--surface-2);
+      border: 1px solid var(--border-2);
+      border-radius: 8px;
+      color: var(--text-primary);
+      cursor: pointer;
+      font-size: 0.9rem;
+      padding: 10px 16px;
+      transition: background 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    button:hover { background: #222; border-color: #444; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    button.danger { background: #3a1a1a; border-color: #5c2a2a; color: var(--critical); }
+    button.danger:hover { background: #452020; }
+
+    #status {
+      font-size: 0.85rem;
+      padding: 10px 14px;
+      border-radius: 8px;
+      display: none;
+      margin-bottom: 14px;
+    }
+    #status.success { background: #1d3a2a; color: var(--good); display: block; }
+    #status.error   { background: #3a1a1a; color: var(--critical); display: block; }
+    #status.info    { background: var(--surface-2); color: var(--text-secondary); display: block; }
+
+    #app { display: none; }
+    #app.show { display: block; }
+
+    /* ── Stat tiles ─────────────────────────────────────────────── */
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .kpi {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .kpi-value { font-size: 1.5rem; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
+    .kpi-label { font-size: 0.72rem; color: var(--text-muted); margin-top: 5px; letter-spacing: 0.03em; }
+
+    /* ── Cards ──────────────────────────────────────────────────── */
+
+    .card {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+    .card-head {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 14px 16px 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .card-head .hint { text-transform: none; letter-spacing: 0; color: var(--text-muted); font-size: 0.72rem; }
+    .card-body { padding: 0 16px 14px; }
+    .card-body.flush { padding: 0; }
+
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-top: 1px solid #202020;
+    }
+    .row:first-child { border-top: none; }
+    .row-label {
+      flex: 1; min-width: 0;
+      font-size: 0.87rem;
+      color: #d0d0d0;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .row-sub { font-size: 0.72rem; color: var(--text-muted); }
+    .row-count {
+      flex: 0 0 auto;
+      font-size: 0.75rem; color: var(--text-secondary);
+      background: #222; border-radius: 20px; padding: 3px 9px;
+      font-variant-numeric: tabular-nums;
+    }
+    .bar { flex: 0 0 110px; height: 5px; background: #222; border-radius: 3px; overflow: hidden; }
+    .bar > span { display: block; height: 100%; background: var(--seq-400); }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th, td { text-align: left; padding: 9px 16px; border-top: 1px solid #202020; }
+    th { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 500; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tbody tr:hover { background: #1c1c1c; }
+
+    /* ── Heatmap viewer ─────────────────────────────────────────── */
+
+    #controls {
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+      padding: 0 16px 14px;
+    }
+    #controls label { font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+    #controls select { font-size: 0.85rem; padding: 7px 10px; }
+    #controls input[type=range] { width: 110px; accent-color: var(--seq-400); }
+
+    #viewer {
+      position: relative;
+      overflow: auto;
+      max-height: 78vh;
+      background: #000;
+      border-top: 1px solid var(--border);
+    }
+    /* Lo stage è impaginato a grandezza naturale e poi scalato; il wrapper
+       porta le dimensioni *scalate*, altrimenti resterebbe da scrollare l'area
+       a grandezza piena sotto la trasformazione. */
+    #stage-wrap { position: relative; overflow: hidden; }
+    #stage { position: absolute; top: 0; left: 0; transform-origin: top left; }
+    #stage iframe { display: block; width: 100%; height: 100%; border: 0; background: #0a0d0e; }
+    /* Il canvas intercetta il puntatore: serve per l'hover e impedisce click
+       accidentali dentro al sito incorniciato. */
+    #overlay { position: absolute; inset: 0; cursor: crosshair; }
+
+    #tip {
+      position: absolute;
+      z-index: 3;
+      display: none;
+      pointer-events: none;
+      background: rgba(12, 12, 12, 0.95);
+      border: 1px solid var(--border-2);
+      border-radius: 6px;
+      padding: 6px 9px;
+      font-size: 0.75rem;
+      line-height: 1.45;
+      white-space: nowrap;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+    }
+    #tip b { font-variant-numeric: tabular-nums; }
+    #tip .muted { color: var(--text-muted); }
+
+    /* Scroll-reach strip, pinned to the left edge of the page image. */
+    #reach { position: absolute; top: 0; left: 0; bottom: 0; width: 34px; pointer-events: none; }
+    #reach div {
+      position: absolute; left: 0; width: 100%;
+      border-bottom: 1px solid rgba(0,0,0,0.35);
+    }
+    #reach span {
+      position: absolute; left: 3px; top: 2px;
+      font-size: 9px; color: #fff; text-shadow: 0 1px 2px #000;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Sequential legend ──────────────────────────────────────── */
+
+    .legend { display: flex; align-items: center; gap: 8px; font-size: 0.72rem; color: var(--text-muted); }
+    .legend-ramp {
+      width: 120px; height: 8px; border-radius: 4px;
+      background: linear-gradient(90deg, var(--seq-700), var(--seq-600), var(--seq-500), var(--seq-400), var(--seq-300), var(--seq-100));
+    }
+
+    .empty { text-align: center; color: #555; font-size: 0.9rem; padding: 40px 0; }
+    .note { font-size: 0.75rem; color: var(--text-muted); padding: 0 16px 14px; line-height: 1.5; }
+
+    @media (max-width: 640px) {
+      .card-body { padding: 0 12px 12px; }
+      th, td { padding: 8px 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Site Analytics</h1>
+
+    <div id="auth-section">
+      <input type="password" id="secret" placeholder="Admin secret" autocomplete="current-password" />
+      <button id="load-btn" onclick="load()">Carica</button>
+      <button class="danger" onclick="clearAll()">Svuota</button>
+      <a href="analytics.html" style="color:#666;font-size:0.8rem;text-decoration:none;align-self:center;padding:0 6px">Chatbot →</a>
+    </div>
+
+    <div id="status"></div>
+
+    <div id="app">
+      <div class="kpis" id="kpis"></div>
+
+      <div class="card">
+        <div class="card-head">
+          Heatmap
+          <span class="legend" style="margin-left:auto">
+            <span>freddo</span><span class="legend-ramp"></span><span>caldo</span>
+          </span>
+        </div>
+        <div id="controls">
+          <label>Pagina <select id="sel-path"></select></label>
+          <label>Device
+            <select id="sel-device">
+              <option value="desktop">desktop</option>
+              <option value="tablet">tablet</option>
+              <option value="mobile">mobile</option>
+            </select>
+          </label>
+          <label>Layer
+            <select id="sel-layer">
+              <option value="click">click</option>
+              <option value="move">attenzione</option>
+            </select>
+          </label>
+          <label>Raggio <input type="range" id="sel-radius" min="10" max="90" value="40" /></label>
+          <label>Intensità <input type="range" id="sel-alpha" min="10" max="100" value="78" /></label>
+          <button onclick="loadHeatmap()">↻</button>
+        </div>
+        <div class="note" id="hm-note"></div>
+        <div id="viewer">
+          <div id="tip"></div>
+          <div id="stage-wrap">
+            <div id="stage">
+              <iframe id="frame" title="Anteprima del sito" referrerpolicy="no-referrer" sandbox="allow-same-origin allow-scripts"></iframe>
+              <canvas id="overlay"></canvas>
+              <div id="reach"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">Elementi più cliccati <span class="hint" id="el-scope"></span></div>
+        <div class="card-body flush"><table id="elements"></table></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">Pagine</div>
+        <div class="card-body flush"><table id="pages"></table></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">Provenienza</div>
+        <div class="card-body" id="referrers"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = 'https://cv-bot-backend-production.up.railway.app';
+    // Il sito reale da mostrare sotto la heatmap.
+    const SITE_ORIGIN = 'https://piccionesebastiano.github.io';
+    // Larghezza di render per device: la pagina viene impaginata a questa
+    // larghezza, la stessa a cui sono state normalizzate le coordinate.
+    const RENDER_WIDTH = { desktop: 1440, tablet: 820, mobile: 390 };
+
+    let overview = null;
+    let heat = null;
+    // Geometria dell'ultimo render + indice cella→hit, per l'hover.
+    let view = null;
+
+    const $ = (id) => document.getElementById(id);
+    const secret = () => $('secret').value.trim();
+
+    function setStatus(msg, type) {
+      const el = $('status');
+      el.textContent = msg;
+      el.className = msg ? (type || '') : '';
+    }
+
+    function esc(s) {
+      return String(s).replace(/[&<>"']/g, (c) =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    function fmtDate(iso) {
+      if (!iso) return '—';
+      return new Date(iso).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    }
+
+    function fmtSeconds(s) {
+      if (!s) return '0s';
+      if (s < 60) return Math.round(s) + 's';
+      return Math.floor(s / 60) + 'm ' + Math.round(s % 60) + 's';
+    }
+
+    async function api(path, options) {
+      const res = await fetch(API + path, Object.assign({
+        headers: { 'x-admin-secret': secret() },
+      }, options || {}));
+      if (!res.ok) throw new Error(res.status === 401 ? 'Secret non valido.' : `Errore ${res.status}`);
+      return res.status === 204 ? null : res.json();
+    }
+
+    // ─── Caricamento ────────────────────────────────────────────────────────
+
+    async function load() {
+      if (!secret()) { setStatus('Inserisci il secret prima.', 'error'); return; }
+      $('load-btn').disabled = true;
+      setStatus('Carico…', 'info');
+      try {
+        overview = await api('/admin/site');
+        setStatus('', '');
+        $('app').classList.add('show');
+        renderOverview();
+        await loadHeatmap();
+      } catch (e) {
+        setStatus(e.message, 'error');
+      } finally {
+        $('load-btn').disabled = false;
+      }
+    }
+
+    async function clearAll() {
+      if (!secret()) { setStatus('Inserisci il secret prima.', 'error'); return; }
+      if (!confirm('Azzerare TUTTE le statistiche del sito? Operazione irreversibile.')) return;
+      try {
+        await api('/admin/site', { method: 'DELETE' });
+        setStatus('Statistiche azzerate.', 'success');
+        await load();
+      } catch (e) {
+        setStatus(e.message, 'error');
+      }
+    }
+
+    function renderOverview() {
+      const o = overview;
+
+      $('kpis').innerHTML = [
+        ['Sessioni', o.sessions],
+        ['Pageview', o.pageviews],
+        ['Click', o.clicks],
+        ['Scroll medio', Math.round(o.avgScroll) + '%'],
+        ['Tempo medio', fmtSeconds(o.avgSeconds)],
+        ['Rage click', o.rageClicks],
+      ].map(([label, value]) => `
+        <div class="kpi">
+          <div class="kpi-value">${esc(value)}</div>
+          <div class="kpi-label">${esc(label)}</div>
+        </div>`).join('');
+
+      const sel = $('sel-path');
+      const previous = sel.value;
+      sel.innerHTML = (o.pages.length ? o.pages : [{ path: '/' }])
+        .map((p) => `<option value="${esc(p.path)}">${esc(p.path)}</option>`).join('');
+      if (previous) sel.value = previous;
+
+      $('pages').innerHTML = o.pages.length ? `
+        <thead><tr>
+          <th>Pagina</th><th class="num">Sessioni</th><th class="num">View</th>
+          <th class="num">Click</th><th class="num">Scroll</th><th class="num">Tempo</th><th class="num">Rage</th>
+        </tr></thead>
+        <tbody>${o.pages.map((p) => `
+          <tr>
+            <td>${esc(p.path)}</td>
+            <td class="num">${p.sessions}</td>
+            <td class="num">${p.views}</td>
+            <td class="num">${p.clicks}</td>
+            <td class="num">${Math.round(p.avgScroll)}%</td>
+            <td class="num">${fmtSeconds(p.avgSeconds)}</td>
+            <td class="num">${p.rageClicks}</td>
+          </tr>`).join('')}</tbody>`
+        : '<tbody><tr><td class="empty">Nessuna pagina registrata.</td></tr></tbody>';
+
+      const refs = o.referrers || [];
+      const maxRef = refs.length ? refs[0].count : 1;
+      $('referrers').innerHTML = refs.length ? refs.map((r) => `
+        <div class="row">
+          <div class="row-label">${esc(r.host)}</div>
+          <div class="bar"><span style="width:${Math.round((r.count / maxRef) * 100)}%"></span></div>
+          <span class="row-count">${r.count}</span>
+        </div>`).join('')
+        : '<div class="empty">Solo traffico diretto.</div>';
+
+      setStatus(`Dati dal ${fmtDate(o.firstSeen)} al ${fmtDate(o.lastSeen)}`, 'info');
+    }
+
+    // ─── Heatmap ────────────────────────────────────────────────────────────
+
+    async function loadHeatmap() {
+      const path = $('sel-path').value || '/';
+      const device = $('sel-device').value;
+      const layer = $('sel-layer').value;
+
+      try {
+        heat = await api(`/admin/site/heatmap?path=${encodeURIComponent(path)}&device=${device}&layer=${layer}`);
+      } catch (e) {
+        setStatus(e.message, 'error');
+        return;
+      }
+
+      renderElements();
+      drawHeatmap();
+    }
+
+    function renderElements() {
+      $('el-scope').textContent = `${heat.path} · ${heat.device}`;
+      const els = heat.elements || [];
+      $('elements').innerHTML = els.length ? `
+        <thead><tr><th>Elemento</th><th>Testo</th><th class="num">Click</th></tr></thead>
+        <tbody>${els.map((e) => `
+          <tr>
+            <td style="color:#9fb8d4;font-family:ui-monospace,monospace;font-size:0.78rem">${esc(e.selector)}</td>
+            <td>${esc(e.label || '—')}</td>
+            <td class="num">${e.count}</td>
+          </tr>`).join('')}</tbody>`
+        : '<tbody><tr><td class="empty">Nessun click registrato su questa pagina.</td></tr></tbody>';
+    }
+
+    // Rampa sequenziale: lo step più scuro (vicino alla superficie del sito)
+    // vale "quasi zero", il più chiaro vale il massimo. Costruita una volta
+    // sola come LUT a 256 voci.
+    const RAMP = [
+      [0.00, '#0d366b'], [0.25, '#184f95'], [0.45, '#256abf'],
+      [0.65, '#3987e5'], [0.82, '#6da7ec'], [1.00, '#cde2fb'],
+    ];
+
+    function buildLut() {
+      const c = document.createElement('canvas');
+      c.width = 256; c.height = 1;
+      const ctx = c.getContext('2d');
+      const grad = ctx.createLinearGradient(0, 0, 256, 0);
+      RAMP.forEach(([stop, hex]) => grad.addColorStop(stop, hex));
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 256, 1);
+      return ctx.getImageData(0, 0, 256, 1).data;
+    }
+    const LUT = buildLut();
+
+    // Tetto di memoria: il canvas è width × height × 4 byte, e getImageData ne
+    // fa una copia. A 1440px di larghezza, 15 000px di altezza sono ~86 MB —
+    // oltre si taglia invece di far crollare la scheda.
+    const MAX_CANVAS_HEIGHT = 15000;
+
+    function drawHeatmap() {
+      const device = $('sel-device').value;
+      const width = RENDER_WIDTH[device] || 1440;
+      const naturalHeight = Math.max(heat.docHeight || 0, 1200);
+      const height = Math.min(naturalHeight, MAX_CANVAS_HEIGHT);
+
+      const stage = $('stage');
+      const frame = $('frame');
+      const canvas = $('overlay');
+
+      // Il sito viene impaginato alla larghezza di riferimento e poi scalato
+      // per stare nel riquadro: le proporzioni restano quelle reali.
+      const available = $('viewer').clientWidth || width;
+      const zoom = Math.min(1, available / width);
+
+      stage.style.width = width + 'px';
+      stage.style.height = height + 'px';
+      stage.style.transform = `scale(${zoom})`;
+
+      const wrap = $('stage-wrap');
+      wrap.style.width = width * zoom + 'px';
+      wrap.style.height = height * zoom + 'px';
+      $('viewer').style.height = Math.min(height * zoom, window.innerHeight * 0.78) + 'px';
+
+      const src = SITE_ORIGIN + heat.path;
+      if (frame.dataset.src !== src) {
+        frame.dataset.src = src;
+        frame.src = src;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      canvas.style.width = width + 'px';
+      canvas.style.height = height + 'px';
+
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, width, height);
+
+      const cells = heat.cells || [];
+
+      view = {
+        width, height, zoom,
+        columns: heat.columns,
+        rowHeight: heat.rowHeight,
+        index: new Map(cells.map(([col, row, count]) => [col * 1000 + row, count])),
+      };
+      const truncated = naturalHeight > height
+        ? ` <strong>Pagina tagliata a ${height}px</strong> (reale ${naturalHeight}px) per non esaurire la memoria.`
+        : '';
+      $('hm-note').innerHTML = cells.length
+        ? `${heat.samples} rilevazioni su ${cells.length} celle · griglia ${heat.columns}×${heat.rowHeight}px · pagina resa a ${width}px e scalata al ${Math.round(zoom * 100)}%.${truncated}`
+        : `Nessuna rilevazione per <strong>${esc(heat.path)}</strong> su <strong>${heat.device}</strong>. Il tracker raccoglie i dati alla prossima visita.`;
+
+      drawReach();
+      if (cells.length === 0) return;
+
+      // Fase 1 — accumulo in scala di grigi: ogni cella è un gradiente radiale
+      // la cui opacità è proporzionale ai suoi hit. Le sovrapposizioni si
+      // sommano da sole, ed è questo che crea le zone calde.
+      const radius = parseInt($('sel-radius').value, 10);
+      const max = heat.max || 1;
+
+      ctx.globalCompositeOperation = 'lighter';
+      for (const [col, row, count] of cells) {
+        const x = ((col + 0.5) / heat.columns) * width;
+        const y = (row + 0.5) * heat.rowHeight;
+        const intensity = Math.min(1, count / max);
+
+        const grad = ctx.createRadialGradient(x, y, 0, x, y, radius);
+        grad.addColorStop(0, `rgba(0,0,0,${intensity})`);
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+      }
+      ctx.globalCompositeOperation = 'source-over';
+
+      // Fase 2 — colorazione: l'alpha accumulato indicizza la rampa.
+      const alphaScale = parseInt($('sel-alpha').value, 10) / 100;
+      const image = ctx.getImageData(0, 0, width, height);
+      const px = image.data;
+
+      for (let i = 0; i < px.length; i += 4) {
+        const a = px[i + 3];
+        if (a === 0) continue;
+        const idx = a * 4; // stessa scala 0–255 della LUT
+        px[i]     = LUT[idx];
+        px[i + 1] = LUT[idx + 1];
+        px[i + 2] = LUT[idx + 2];
+        // Sotto una soglia minima il punto resta trasparente: il rumore a un
+        // solo click non deve velare la pagina.
+        px[i + 3] = a < 12 ? 0 : Math.min(255, a * alphaScale + 40);
+      }
+      ctx.putImageData(image, 0, 0);
+    }
+
+    // Striscia di scroll reach ancorata al bordo sinistro della pagina.
+    function drawReach() {
+      const reach = heat.scrollReach || [];
+      const el = $('reach');
+      if (!reach.length || !reach.some((n) => n > 0)) { el.innerHTML = ''; return; }
+
+      const height = parseInt($('stage').style.height, 10);
+      const band = height / reach.length;
+
+      el.innerHTML = reach.map((share, i) => {
+        // Stessa rampa: poche sessioni = passo scuro, molte = passo chiaro.
+        const idx = Math.min(LUT.length / 4 - 1, Math.round(share * 255));
+        const color = `rgb(${LUT[idx * 4]},${LUT[idx * 4 + 1]},${LUT[idx * 4 + 2]})`;
+        const label = i % 4 === 0 ? `<span>${Math.round(share * 100)}%</span>` : '';
+        return `<div style="top:${i * band}px;height:${band}px;background:${color};opacity:0.85">${label}</div>`;
+      }).join('');
+    }
+
+    // ─── Hover sulla heatmap ────────────────────────────────────────────────
+
+    // Il canvas è disegnato a grandezza naturale e poi scalato: per risalire
+    // alla cella si divide per lo zoom prima di mappare su colonna/riga.
+    $('overlay').addEventListener('mousemove', (e) => {
+      if (!view) return;
+
+      const rect = $('stage-wrap').getBoundingClientRect();
+      const x = (e.clientX - rect.left) / view.zoom;
+      const y = (e.clientY - rect.top) / view.zoom;
+
+      const col = Math.min(view.columns - 1, Math.max(0, Math.floor((x / view.width) * view.columns)));
+      const row = Math.max(0, Math.floor(y / view.rowHeight));
+      const count = view.index.get(col * 1000 + row) || 0;
+
+      const tip = $('tip');
+      const layer = $('sel-layer').value === 'move' ? 'passaggi' : 'click';
+      tip.innerHTML = count
+        ? `<b>${count}</b> ${layer}<br><span class="muted">${col}% di larghezza · ${row * view.rowHeight}px dal top</span>`
+        : `<span class="muted">nessun dato qui · ${row * view.rowHeight}px dal top</span>`;
+      tip.style.display = 'block';
+
+      // Ancorato al riquadro, non alla pagina, così segue anche lo scroll interno.
+      const viewer = $('viewer');
+      const vr = viewer.getBoundingClientRect();
+      const left = e.clientX - vr.left + viewer.scrollLeft + 14;
+      const top = e.clientY - vr.top + viewer.scrollTop + 14;
+      tip.style.left = Math.min(left, viewer.scrollLeft + viewer.clientWidth - tip.offsetWidth - 8) + 'px';
+      tip.style.top = top + 'px';
+    });
+
+    $('overlay').addEventListener('mouseleave', () => { $('tip').style.display = 'none'; });
+
+    // ─── Eventi UI ──────────────────────────────────────────────────────────
+
+    ['sel-path', 'sel-device', 'sel-layer'].forEach((id) =>
+      $(id).addEventListener('change', loadHeatmap));
+    ['sel-radius', 'sel-alpha'].forEach((id) =>
+      $(id).addEventListener('input', () => { if (heat) drawHeatmap(); }));
+
+    $('secret').addEventListener('keydown', (e) => { if (e.key === 'Enter') load(); });
+
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+      if (!heat) return;
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(drawHeatmap, 200);
+    });
+  </script>
+</body>
+</html>

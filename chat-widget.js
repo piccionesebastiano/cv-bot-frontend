@@ -20,6 +20,23 @@
         'Raccontami un problema tecnico risolto',
         'Parlami del progetto Steal Drink',
       ],
+      // Suggerimenti per pagina: la prima regola il cui `match` (regex o
+      // sottostringa) combacia col contesto vince. Il contesto è
+      // data-cv-chat-context sul contenitore, oppure pathname + hash.
+      // [{ match: '/progetti', suggestions: ['...'] }]
+      contextSuggestions: [],
+      // Messaggio proattivo se l'utente guarda il widget senza scrivere.
+      proactive: {
+        enabled: true,
+        delay: 12000,
+        message:
+          'Se non sai da dove partire: la maggior parte di chi passa di qui mi chiede dello stack o dei progetti su cui ho lavorato. Scegli pure una domanda qui sotto 👇',
+        suggestions: null, // null = riusa i suggerimenti già a schermo
+      },
+      // Telemetria anonima (nessun cookie): quali suggerimenti vengono cliccati,
+      // cosa viene chiesto, se il nudge proattivo converte.
+      tracking: true,
+      eventsUrl: '', // default: stesso host di apiUrl, path /events
     },
     window.CV_CHAT_CONFIG || {},
   );
@@ -35,6 +52,10 @@
   let conversationHistory = []; // { role: 'user'|'assistant', content: string }[]
   let messageLog = [];          // { role: 'bot'|'user', text: string, time: string }[]
   let lastSuggestions = CONFIG.initialSuggestions;
+  let suggestionSource = 'initial'; // provenienza dei chip a schermo, per la telemetria
+  let proactiveShown = false;
+  let proactiveConverted = false;
+  let proactiveTimer = null;
 
   // Unique id per conversation — lets the backend group logged Q&A turns.
   function newSessionId() {
@@ -56,6 +77,9 @@
         history: conversationHistory,
         messages: messageLog,
         suggestions: lastSuggestions,
+        suggestionSource: suggestionSource,
+        proactiveShown: proactiveShown,
+        proactiveConverted: proactiveConverted,
       }));
     } catch (_) {}
   }
@@ -177,6 +201,79 @@
   applySiteTheme();
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applySiteTheme);
 
+  // ─── Telemetria ───────────────────────────────────────────────────────────
+
+  // Nessun cookie, nessun identificatore persistente: solo il sessionId effimero
+  // già usato per raggruppare la conversazione lato backend.
+  const eventsUrl = CONFIG.eventsUrl || CONFIG.apiUrl.replace(/\/chat\/?$/, '') + '/events';
+  const trackingOn =
+    CONFIG.tracking !== false &&
+    navigator.doNotTrack !== '1' &&
+    window.doNotTrack !== '1';
+
+  const eventQueue = [];
+  let flushTimer = null;
+
+  function pageKey() {
+    return (location.pathname + location.hash).slice(0, 300);
+  }
+
+  function track(name, extra) {
+    if (!trackingOn) return;
+    eventQueue.push(Object.assign({ name: name, sessionId: sessionId, page: pageKey() }, extra || {}));
+    if (eventQueue.length >= 20) flushEvents();
+    else if (!flushTimer) flushTimer = setTimeout(flushEvents, 8000);
+  }
+
+  // keepalive lets the request outlive the page on pagehide/visibilitychange —
+  // unlike sendBeacon it still carries the widget token header.
+  function flushEvents(keepalive) {
+    if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
+    if (eventQueue.length === 0) return;
+
+    const batch = eventQueue.splice(0, 30);
+
+    fetch(eventsUrl, {
+      method: 'POST',
+      keepalive: !!keepalive,
+      headers: {
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
+        ...(CONFIG.widgetToken ? { 'X-Widget-Token': CONFIG.widgetToken } : {}),
+      },
+      body: JSON.stringify({ events: batch }),
+    }).catch(() => {}); // la telemetria non deve mai disturbare la chat
+
+    if (eventQueue.length > 0 && !flushTimer) flushTimer = setTimeout(flushEvents, 8000);
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushEvents(true);
+  });
+  window.addEventListener('pagehide', () => flushEvents(true));
+
+  // ─── Suggerimenti contestuali ─────────────────────────────────────────────
+
+  // Il contesto è un attributo esplicito sul contenitore, altrimenti l'URL.
+  // Ogni regola: { match: 'regex o sottostringa', suggestions: [...] }.
+  function resolveContextSuggestions() {
+    const context = widget.dataset.cvChatContext || pageKey();
+    const rules = Array.isArray(CONFIG.contextSuggestions) ? CONFIG.contextSuggestions : [];
+
+    for (const rule of rules) {
+      if (!rule || !rule.match || !Array.isArray(rule.suggestions) || rule.suggestions.length === 0) continue;
+      let hit;
+      try {
+        hit = new RegExp(rule.match, 'i').test(context);
+      } catch (_) {
+        hit = context.toLowerCase().includes(String(rule.match).toLowerCase());
+      }
+      if (hit) return { suggestions: rule.suggestions, source: 'context' };
+    }
+
+    return { suggestions: CONFIG.initialSuggestions, source: 'initial' };
+  }
+
   // ─── Init ─────────────────────────────────────────────────────────────────
 
   // The widget has no toggle/close button — it's always mounted open. Populates the
@@ -192,38 +289,105 @@
       if (session.sessionId) sessionId = session.sessionId;
       conversationHistory = session.history || [];
       messageLog = session.messages;
-      lastSuggestions = session.suggestions || CONFIG.initialSuggestions;
+      proactiveShown = !!session.proactiveShown;
+      proactiveConverted = !!session.proactiveConverted;
       session.messages.forEach((msg) => {
         if (msg.role === 'bot') addBotMessage(msg.text, msg.time);
         else if (msg.role === 'user') addUserMessage(msg.text, msg.time);
       });
-      renderSuggestions(lastSuggestions);
+      renderSuggestions(session.suggestions || CONFIG.initialSuggestions, session.suggestionSource || 'dynamic');
     } else {
+      const context = resolveContextSuggestions();
       addBotMessage(CONFIG.welcomeMessage);
-      renderSuggestions(CONFIG.initialSuggestions);
+      renderSuggestions(context.suggestions, context.source);
       saveSession();
+      track('session_start', { source: context.source });
     }
+
+    armProactive();
   }
 
   // U1: reset conversation to welcome state
   function resetConversation() {
     if (isLoading) return;
+    track('conversation_reset');
+    // Chi apre una nuova chat è già ingaggiato: il nudge diventerebbe rumore.
+    cancelProactive();
     sessionId = newSessionId();
     conversationHistory = [];
     messageLog = [];
-    lastSuggestions = CONFIG.initialSuggestions;
     clearSession();
     messagesEl.innerHTML = '';
     inputEl.value = '';
     inputEl.style.height = 'auto';
     sendBtn.disabled = true;
+    const context = resolveContextSuggestions();
     addBotMessage(CONFIG.welcomeMessage);
-    renderSuggestions(CONFIG.initialSuggestions);
+    renderSuggestions(context.suggestions, context.source);
     saveSession();
     inputEl.focus();
   }
 
   newChatBtn.addEventListener('click', resetConversation);
+
+  // ─── Nudge proattivo ──────────────────────────────────────────────────────
+
+  // Il widget è sempre montato aperto e può stare sotto la piega: il conto alla
+  // rovescia parte quando entra davvero nel viewport, non al load della pagina.
+  function armProactive() {
+    const cfg = CONFIG.proactive || {};
+    if (!cfg.enabled || proactiveShown) return;
+    if (messageLog.some((m) => m.role === 'user')) return; // conversazione già avviata
+
+    const start = () => {
+      if (proactiveTimer || proactiveShown) return;
+      proactiveTimer = setTimeout(showProactive, cfg.delay || 12000);
+    };
+
+    if (!('IntersectionObserver' in window)) {
+      track('widget_seen');
+      start();
+      return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        observer.disconnect();
+        track('widget_seen');
+        start();
+      }
+      // threshold 0: un widget più alto del viewport non raggiungerebbe mai
+      // una soglia percentuale su mobile.
+    }, { threshold: 0 });
+
+    observer.observe(widget);
+  }
+
+  function cancelProactive() {
+    if (proactiveTimer) {
+      clearTimeout(proactiveTimer);
+      proactiveTimer = null;
+    }
+  }
+
+  function showProactive() {
+    proactiveTimer = null;
+    const cfg = CONFIG.proactive || {};
+    if (proactiveShown || isLoading) return;
+    if (messageLog.some((m) => m.role === 'user')) return;
+
+    proactiveShown = true;
+    addBotMessage(cfg.message);
+
+    const suggestions = Array.isArray(cfg.suggestions) && cfg.suggestions.length > 0
+      ? cfg.suggestions
+      : lastSuggestions;
+    renderSuggestions(suggestions, 'proactive');
+
+    saveSession();
+    track('proactive_shown');
+  }
 
   const COPY_ICON = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
   const CHECK_ICON = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
@@ -234,6 +398,22 @@
 
   function timestamp() {
     return new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  // U7: copy to clipboard. Una copia è un segnale forte di interesse — la tracciamo.
+  function wireCopyButton(copyBtn, text) {
+    copyBtn.addEventListener('click', () => {
+      if (!navigator.clipboard) return;
+      navigator.clipboard.writeText(text).then(() => {
+        track('copy_click');
+        copyBtn.innerHTML = CHECK_ICON;
+        copyBtn.classList.add('cv-copy-btn--done');
+        setTimeout(() => {
+          copyBtn.innerHTML = COPY_ICON;
+          copyBtn.classList.remove('cv-copy-btn--done');
+        }, 1500);
+      }).catch(() => {});
+    });
   }
 
   // savedTime is passed when restoring from sessionStorage — skips pushing to messageLog
@@ -252,19 +432,7 @@
       </div>
     `;
 
-    // U7: copy to clipboard
-    const copyBtn = wrap.querySelector('.cv-copy-btn');
-    copyBtn.addEventListener('click', () => {
-      if (!navigator.clipboard) return;
-      navigator.clipboard.writeText(text).then(() => {
-        copyBtn.innerHTML = CHECK_ICON;
-        copyBtn.classList.add('cv-copy-btn--done');
-        setTimeout(() => {
-          copyBtn.innerHTML = COPY_ICON;
-          copyBtn.classList.remove('cv-copy-btn--done');
-        }, 1500);
-      }).catch(() => {});
-    });
+    wireCopyButton(wrap.querySelector('.cv-copy-btn'), text);
 
     messagesEl.appendChild(wrap);
     if (!savedTime) messageLog.push({ role: 'bot', text, time });
@@ -317,8 +485,11 @@
 
   // ─── Suggestions (dinamiche) ──────────────────────────────────────────────
 
-  function renderSuggestions(suggestions) {
+  // `source` traccia da dove arrivano i chip a schermo: initial (default),
+  // context (regola per pagina), proactive (nudge), dynamic (proposti dal modello).
+  function renderSuggestions(suggestions, source) {
     lastSuggestions = suggestions || [];
+    suggestionSource = source || 'dynamic';
     suggestionsEl.innerHTML = '';
 
     if (!suggestions || suggestions.length === 0) {
@@ -333,10 +504,12 @@
       btn.className = 'cv-chip';
       btn.type = 'button';
       btn.textContent = text;
+      const source = suggestionSource;
       btn.addEventListener('click', () => {
         if (isLoading) return; // U3: ignore clicks while loading
+        track('chip_click', { label: text, source: source });
         inputEl.value = text;
-        send();
+        send(source);
       });
       suggestionsEl.appendChild(btn);
     });
@@ -345,6 +518,8 @@
   // ─── Input ────────────────────────────────────────────────────────────────
 
   inputEl.addEventListener('input', () => {
+    // Chi sta scrivendo non ha bisogno di essere spronato.
+    if (inputEl.value.length > 0) cancelProactive();
     sendBtn.disabled = inputEl.value.trim().length === 0 || isLoading;
     inputEl.style.height = 'auto';
     inputEl.style.height = Math.min(inputEl.scrollHeight, 100) + 'px';
@@ -353,11 +528,11 @@
   inputEl.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (!sendBtn.disabled) send();
+      if (!sendBtn.disabled) send('typed');
     }
   });
 
-  sendBtn.addEventListener('click', send);
+  sendBtn.addEventListener('click', () => send('typed'));
 
   // ─── Streaming helpers ────────────────────────────────────────────────────
 
@@ -385,18 +560,7 @@
     textEl.classList.remove('cv-msg-bot-text--streaming');
     textEl.innerHTML = renderMarkdown(fullText);
 
-    const copyBtn = wrap.querySelector('.cv-copy-btn');
-    copyBtn.addEventListener('click', () => {
-      if (!navigator.clipboard) return;
-      navigator.clipboard.writeText(fullText).then(() => {
-        copyBtn.innerHTML = CHECK_ICON;
-        copyBtn.classList.add('cv-copy-btn--done');
-        setTimeout(() => {
-          copyBtn.innerHTML = COPY_ICON;
-          copyBtn.classList.remove('cv-copy-btn--done');
-        }, 1500);
-      }).catch(() => {});
-    });
+    wireCopyButton(wrap.querySelector('.cv-copy-btn'), fullText);
 
     messageLog.push({ role: 'bot', text: fullText, time });
   }
@@ -405,9 +569,16 @@
 
   const streamUrl = CONFIG.streamApiUrl || CONFIG.apiUrl + '/stream';
 
-  async function send() {
+  async function send(source) {
     const message = inputEl.value.trim();
     if (!message || isLoading) return;
+
+    cancelProactive();
+    track('message_sent', { label: message, source: source || 'typed' });
+    if (proactiveShown && !proactiveConverted) {
+      proactiveConverted = true;
+      track('proactive_converted', { label: message, source: source || 'typed' });
+    }
 
     inputEl.value = '';
     inputEl.style.height = 'auto';
@@ -442,7 +613,8 @@
         wrap.remove();
         if (res.status === 400) {
           addBotMessage('Posso rispondere solo a domande sul CV e sull\'esperienza di Sebastiano. Hai qualcosa da chiedermi? 😊');
-          renderSuggestions(CONFIG.initialSuggestions);
+          const fallback = resolveContextSuggestions();
+          renderSuggestions(fallback.suggestions, fallback.source);
           saveSession();
           return;
         }
@@ -490,7 +662,7 @@
               { role: 'user',      content: message },
               { role: 'assistant', content: finalReply },
             );
-            renderSuggestions(data.suggestions || []);
+            renderSuggestions(data.suggestions || [], 'dynamic');
             saveSession();
             finalized = true;
           }
@@ -520,7 +692,7 @@
         addErrorMessage('Si è verificato un errore. Riprova tra qualche istante.');
       }
 
-      renderSuggestions([]);
+      renderSuggestions([], 'dynamic');
     } finally {
       isLoading = false;
       suggestionsEl.classList.remove('cv-suggestions--loading');
