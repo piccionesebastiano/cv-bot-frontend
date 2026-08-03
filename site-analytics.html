@@ -523,7 +523,9 @@
       wrap.style.height = height * zoom + 'px';
       $('viewer').style.height = Math.min(height * zoom, window.innerHeight * 0.78) + 'px';
 
-      const src = SITE_ORIGIN + heat.path;
+      // preview=1 dice al sito di non registrare la visita: l'anteprima serve a
+      // guardare le statistiche, non a produrne.
+      const src = SITE_ORIGIN + heat.path + '?preview=1';
       if (frame.dataset.src !== src) {
         frame.dataset.src = src;
         frame.src = src;

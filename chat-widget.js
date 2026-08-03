@@ -206,10 +206,21 @@
   // Nessun cookie, nessun identificatore persistente: solo il sessionId effimero
   // già usato per raggruppare la conversazione lato backend.
   const eventsUrl = CONFIG.eventsUrl || CONFIG.apiUrl.replace(/\/chat\/?$/, '') + '/events';
+  // In un iframe il sito è l'anteprima della dashboard heatmap, non una visita:
+  // gli eventi del widget lì dentro falserebbero le statistiche della chat.
+  function framed() {
+    try {
+      return window.top !== window.self;
+    } catch (_) {
+      return true; // accesso negato ⇒ siamo comunque incorniciati
+    }
+  }
+
   const trackingOn =
     CONFIG.tracking !== false &&
     navigator.doNotTrack !== '1' &&
-    window.doNotTrack !== '1';
+    window.doNotTrack !== '1' &&
+    !framed();
 
   const eventQueue = [];
   let flushTimer = null;
